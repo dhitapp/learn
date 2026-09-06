@@ -8,7 +8,7 @@ import os
 train_test_ratio = float(os.getenv('TRAIN_TEST_RATIO', '0.9'))
 torch.manual_seed(1337)
 BATCH_SIZE = int(os.getenv('BATCH_SIZE', '4'))
-CONTEXT_WINDOW_SIZE = int(os.getenv('CONTEXT_WINDOW_SIZE', '8'))
+CONTEXT_WINDOW_SIZE = int(os.getenv('CONTEXT_WINDOW_SIZE', '32'))
 
 class TextDataset(Dataset):
     def __init__(self, data_directories: Path, device):
@@ -48,14 +48,14 @@ class TextDataset(Dataset):
             self.test[i] = encode(self.stoi, test_chunk)
         
         
-    def load_train(self, batch_size: int = 8):
-        self.x_train, self.y_train = get_batch(self.train, batch_size)
+    def load_train(self, batch_size: int = 8, context_window_size: int = 32):
+        self.x_train, self.y_train = get_batch(self.train, batch_size=batch_size, context_window_size=context_window_size)
         self.x_train, self.y_train = self.x_train.to(self.device), self.y_train.to(self.device)
         
         return self.x_train, self.y_train
 
-    def load_test(self, batch_size: int = 8):
-        self.x_test, self.y_test = get_batch(self.test, batch_size)
+    def load_test(self, batch_size: int = 8, context_window_size: int = 32):
+        self.x_test, self.y_test = get_batch(self.test, batch_size=batch_size, context_window_size=context_window_size)
         self.x_test, self.y_test = self.x_test.to(self.device), self.y_test.to(self.device)
         
         return self.x_test, self.y_test

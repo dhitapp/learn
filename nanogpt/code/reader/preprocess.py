@@ -3,7 +3,7 @@ import torch
 from pathlib import Path
 
 BATCH_SIZE = int(os.getenv('BATCH_SIZE', '4'))
-CONTEXT_WINDOW_SIZE = int(os.getenv('CONTEXT_WINDOW_SIZE', '8'))
+CONTEXT_WINDOW_SIZE = int(os.getenv('CONTEXT_WINDOW_SIZE', '32'))
 
 def open_file(file_path: str | Path):
     with open(file_path, 'r', encoding='utf-8') as f:

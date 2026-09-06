@@ -62,7 +62,6 @@ class NgramLanguageModel(nn.Module):
         super().__init__()
         # each token directly reads off the logits for the next token from a lookup table
         self.seq_length = seq_length
-        self.n_gram = n_gram
         self.token_embedding_table = nn.Embedding(vocab_size, embedding_size)
         self.position_embedding_table = nn.Embedding(seq_length, embedding_size)
         self.blocks = nn.Sequential(*[Block(n_heads, embedding_size, seq_length, dropout_rate, qkv_bias) for _ in range(n_blocks)])
