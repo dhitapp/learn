@@ -8,7 +8,6 @@ class CausalAttention(Attention):
 
     def __init__(self, head_size: int, embedding_size: int, seq_length: int, dropout_rate: float, qkv_bias: bool = False):
         super().__init__(head_size, embedding_size, seq_length, dropout_rate, qkv_bias)
-        self.head_size = head_size
 
     def forward(self, x):
         B, T, C = x.shape

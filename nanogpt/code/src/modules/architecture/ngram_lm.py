@@ -24,7 +24,7 @@ class FeedFoward(nn.Module):
 class Block(nn.Module):
     """ Transformer block: communication followed by computation """
 
-    def __init__(self, n_heads: int, embedding_size: int, seq_length: int, dropout_rate: float, qkv_bias: bool = False):
+    def __init__(self, n_heads: int, embedding_size: int, seq_length: int, dropout_rate: float, qkv_bias: bool = False, attention_type: str = "causal", tile_size: int = 4):
         # n_embd: embedding dimension, n_head: the number of heads we'd like
         super().__init__()
         head_size = embedding_size // n_heads
@@ -34,7 +34,9 @@ class Block(nn.Module):
                     embedding_size,
                     seq_length,
                     dropout_rate,
-                    qkv_bias
+                    qkv_bias,
+                    attention_type,
+                    tile_size,
                 )
         self.ffwd = FeedFoward(embedding_size, dropout_rate)
         self.ln1 = nn.LayerNorm(embedding_size)
@@ -58,13 +60,26 @@ class NgramLanguageModel(nn.Module):
                  dropout_rate: float, 
                  device: str, 
                  n_gram: int = None,
-                 qkv_bias: bool = False):
+                 qkv_bias: bool = False,
+                 attention_type: str = "causal",
+                 tile_size: int = 4):
         super().__init__()
         # each token directly reads off the logits for the next token from a lookup table
         self.seq_length = seq_length
         self.token_embedding_table = nn.Embedding(vocab_size, embedding_size)
         self.position_embedding_table = nn.Embedding(seq_length, embedding_size)
-        self.blocks = nn.Sequential(*[Block(n_heads, embedding_size, seq_length, dropout_rate, qkv_bias) for _ in range(n_blocks)])
+        self.blocks = nn.Sequential(*[
+            Block(
+                n_heads,
+                embedding_size,
+                seq_length,
+                dropout_rate,
+                qkv_bias,
+                attention_type,
+                tile_size,
+            )
+            for _ in range(n_blocks)
+        ])
         self.ln_f = nn.LayerNorm(embedding_size) # final layer norm
         self.lm_head = nn.Linear(embedding_size, vocab_size)
 

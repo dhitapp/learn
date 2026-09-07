@@ -5,6 +5,7 @@ Repositories of things I tried to explore, learn, relearn, instead of just takin
 
 ## Logs
 06/09/2026 - Transformer, Attention, especially NanoGPT.
+07/09/2026 - FlashAttentionv1
 
 ## TBD
 - FlashAttention and their variants

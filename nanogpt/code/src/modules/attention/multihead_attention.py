@@ -1,16 +1,37 @@
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
-from src.modules.attention.base import Attention
 from src.modules.attention.causal_attention import CausalAttention
+from src.modules.attention.flash_attention.flash_attention_v1 import FlashAttentionV1
 
 
 class MultiHeadAttention(nn.Module):
     """ multiple heads of self-attention in parallel """
 
-    def __init__(self, n_heads: int, head_size: int, embedding_size: int, seq_length: int, dropout_rate: float, qkv_bias: bool = False):
+    def __init__(self, n_heads: int, head_size: int, embedding_size: int, seq_length: int, dropout_rate: float, qkv_bias: bool = False, attention_type: str = "causal", tile_size: int = 4):
         super().__init__()
-        self.heads = nn.ModuleList([CausalAttention(head_size, embedding_size, seq_length, dropout_rate, qkv_bias) for _ in range(n_heads)])
+        attention_classes = {
+            "causal": CausalAttention,
+            "flash": FlashAttentionV1,
+        }
+        if attention_type not in attention_classes:
+            raise ValueError(
+                f"Unknown attention_type {attention_type!r}. "
+                f"Choose one of {tuple(attention_classes)}."
+            )
+
+        attention_class = attention_classes[attention_type]
+        attention_kwargs = {"tile_size": tile_size} if attention_type == "flash" else {}
+        self.heads = nn.ModuleList([
+            attention_class(
+                head_size,
+                embedding_size,
+                seq_length,
+                dropout_rate,
+                qkv_bias,
+                **attention_kwargs,
+            )
+            for _ in range(n_heads)
+        ])
         self.proj = nn.Linear(embedding_size, embedding_size)
         self.dropout = nn.Dropout(dropout_rate)
 
