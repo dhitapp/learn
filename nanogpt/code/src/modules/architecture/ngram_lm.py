@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from src.modules.attention.multihead_attention import MultiHeadAttention
+from src.modules.attention.multiqueries_attention import MultiQueriesAttention
 
 class FeedFoward(nn.Module):
     """ a simple linear layer followed by a non-linearity """
@@ -24,20 +25,35 @@ class FeedFoward(nn.Module):
 class Block(nn.Module):
     """ Transformer block: communication followed by computation """
 
-    def __init__(self, n_heads: int, embedding_size: int, seq_length: int, dropout_rate: float, qkv_bias: bool = False, attention_type: str = "causal", tile_size: int = 4):
+    def __init__(self, n_heads: int, embedding_size: int, seq_length: int, dropout_rate: float, 
+                 qkv_bias: bool = False, 
+                 attention_type: str = "causal",
+                 multi_attention_type: str = 'multi-attention',
+                 tile_size: int = 4):
         # n_embd: embedding dimension, n_head: the number of heads we'd like
         super().__init__()
         head_size = embedding_size // n_heads
-        self.sa = MultiHeadAttention(
-                    n_heads,
-                    head_size,
-                    embedding_size,
-                    seq_length,
-                    dropout_rate,
-                    qkv_bias,
-                    attention_type,
-                    tile_size,
-                )
+        if multi_attention_type == 'multi-attention':
+            self.sa = MultiHeadAttention(
+                        n_heads,
+                        head_size,
+                        embedding_size,
+                        seq_length,
+                        dropout_rate,
+                        qkv_bias,
+                        attention_type,
+                        tile_size,
+                    )
+        else:
+            self.sa = MultiQueriesAttention(
+                                    n_heads,
+                                    head_size,
+                                    embedding_size,
+                                    seq_length,
+                                    dropout_rate,
+                                    qkv_bias,
+                                    shared_kv=True
+                                )
         self.ffwd = FeedFoward(embedding_size, dropout_rate)
         self.ln1 = nn.LayerNorm(embedding_size)
         self.ln2 = nn.LayerNorm(embedding_size)
@@ -62,6 +78,7 @@ class NgramLanguageModel(nn.Module):
                  n_gram: int = None,
                  qkv_bias: bool = False,
                  attention_type: str = "causal",
+                 multi_attention_type: str = 'multi-attention',
                  tile_size: int = 4):
         super().__init__()
         # each token directly reads off the logits for the next token from a lookup table
@@ -76,6 +93,7 @@ class NgramLanguageModel(nn.Module):
                 dropout_rate,
                 qkv_bias,
                 attention_type,
+                multi_attention_type,
                 tile_size,
             )
             for _ in range(n_blocks)
