@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from src.modules.attention.causal_attention import CausalAttention
 from src.modules.attention.flash_attention.flash_attention_v1 import FlashAttentionV1
+from src.modules.position_embedding import PositionEmbedding, RoPE
 
 
 class MultiHeadAttention(nn.Module):
@@ -35,7 +36,17 @@ class MultiHeadAttention(nn.Module):
         self.proj = nn.Linear(embedding_size, embedding_size)
         self.dropout = nn.Dropout(dropout_rate)
 
-    def forward(self, x):
-        out = torch.cat([h(x) for h in self.heads], dim=-1)
+    def forward(self, x, past_length, position_embedding, kv_cache_block=None):
+        B, T, C = x.shape
+        if isinstance(position_embedding, PositionEmbedding):
+            pos_emb = position_embedding(
+                torch.arange(past_length, past_length + T)
+            ) # (T,C)
+            x = x + pos_emb # (B,T,C)
+
+        # Accepted for a uniform Block call signature, but unsupported: every head here
+        # owns its own K/V, so caching would need one cache per head. Block rejects it.
+        out = torch.cat([h(x, position_embedding) for h in self.heads], dim=-1)
+
         out = self.dropout(self.proj(out))
-        return out
+        return out, kv_cache_block
